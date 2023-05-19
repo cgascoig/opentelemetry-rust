@@ -35,10 +35,17 @@ impl Aggregator for LastValueAggregator {
 
     fn update(&self, _cx: &Context, number: &Number, _descriptor: &Descriptor) -> Result<()> {
         self.inner.lock().map_err(Into::into).map(|mut inner| {
-            inner.state = Some(LastValueData {
-                value: number.clone(),
-                timestamp: opentelemetry_api::time::now(),
-            });
+            if let Some(timestamp) = _cx.get::<std::time::SystemTime>() {
+                inner.state = Some(LastValueData {
+                    value: number.clone(),
+                    timestamp: *timestamp,
+                });
+            } else {
+                inner.state = Some(LastValueData {
+                    value: number.clone(),
+                    timestamp: opentelemetry_api::time::now(),
+                });
+            }
         })
     }
 
